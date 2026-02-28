@@ -72,11 +72,3 @@ h3 {
     background: #0d47a1;
     transform: scale(1.05);
 }
-
-span {
-    white-space: normal;
-    /* permite quebra de linha */
-    word-wrap: break-word;
-    /* quebra palavras longas */
-    overflow-wrap: break-word;
-}
