@@ -1,0 +1,46 @@
+<div class="jumbotron text-center bg-secondary text-white">
+    <h1 class="display-4">Bem-vindo ao Blog de Node!</h1>
+    <p class="lead">Explorando Node.js, MongoDB e desenvolvimento web moderno.</p>
+    <hr class="my-4 bg-light">
+    <p>Aprenda, pratique e acompanhe novidades sobre programação full-stack.</p>
+    <p class="lead">
+        <a class="btn btn-light btn-lg" href="/quiz" role="button">Teste seus conhecimentos</a>
+    </p>
+</div>
+
+<hr>
+
+<div class="card shadow bg-secondary text-white mt-3">
+    <div class="card-body text-center">
+        <h3>Quiz Interativo</h3>
+        <p>Coloque seus conhecimentos à prova com desafios de programação e matemática!</p>
+        <a href="/quiz" class="btn btn-success btn-lg">Ir para o Quiz</a>
+    </div>
+</div>
+<br>
+<div class="card shadow bg-secondary text-white mt-3">
+    <div class="card-body text-center">
+        <h3>Exames de Admissão Resolvidos Passo a Passo</h3>
+        <p>Aprofunde seus estudos com resoluções completas e comentadas. Cada questão é explicada detalhadamente,
+            mostrando o raciocínio e as técnicas necessárias para chegar à resposta correta. Ideal para quem quer
+            aprender de forma prática e ganhar segurança para enfrentar provas de admissão.</p>
+        <a href="/exames" class="btn btn-success btn-lg">Entrar</a>
+    </div>
+</div>
+
+<h2 class="mt-4">Postagens Recentes</h2>
+
+{{#each postagens}}
+<div class="card mb-3 shadow-sm">
+    <div class="card-body">
+        <h4 class="card-title">{{titulo}}</h4>
+        <p class="card-text">{{descricao}}</p>
+        <a href="/postagem/{{_id}}"><button class="btn btn-outline-primary">Leia mais...</button></a>
+        <hr>
+        <small class="text-muted">Categoria: {{categoria.nome}}</small><br>
+        <small class="text-muted">Publicado em: {{data}}</small>
+    </div>
+</div>
+{{else}}
+<h5 class="text-muted">Nenhuma Postagem</h5>
+{{/each}}
