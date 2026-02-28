@@ -2,7 +2,8 @@
     max-width: 950px;
     margin: 20px auto;
     padding: 20px;
-    background: #fff;
+    background: transparent;
+    /* sem fundo branco */
 }
 
 .exame h2,
@@ -17,6 +18,7 @@
     margin-bottom: 20px;
     padding: 15px;
     background: #f1f5ff;
+    /* podes remover se quiser fundo limpo */
     border-left: 5px solid #1a73e8;
     border-radius: 6px;
 }
@@ -39,14 +41,26 @@
     padding: 6px 12px;
     background: #eef3fd;
     border-radius: 6px;
+    white-space: normal;
+    /* permite quebra de linha */
+    word-wrap: break-word;
+    /* quebra palavras longas */
+    overflow-wrap: break-word;
+    /* garante quebra em navegadores modernos */
 }
 
-/* Resoluções limpas mas elegantes */
+/* Resoluções limpas sem camada */
 .resolucao {
     margin: 20px 0;
     font-size: 1rem;
     line-height: 1.6;
     color: #333;
+    background: transparent;
+    /* sem fundo */
+    padding: 0;
+    /* sem espaçamento extra */
+    border: none;
+    /* sem borda */
 }
 
 .resolucao strong {
