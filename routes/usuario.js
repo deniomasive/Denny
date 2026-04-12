@@ -1,95 +1,66 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs"); // para criptografar senha
+const bcrypt = require("bcryptjs");
 require("../models/Usuario");
-const passport = require("passport")
+const passport = require("passport");
 const Usuario = mongoose.model("usuarios");
 const Postagem = require("../models/Postagem");
 
-
-
-
-router.get("/registro", (req, res) => {
-    res.render("usuarios/registro");
-});
-
-router.post("/registro", (req, res) => {
+// rota registro de usuário
+router.post("/registro", async (req, res) => {
     let erros = [];
 
-    if (!req.body.nome || typeof req.body.nome === "undefined" || req.body.nome === null) {
-        erros.push({ texto: "Nome inválido" });
-    }
-
-    if (!req.body.email || typeof req.body.email === "undefined" || req.body.email === null) {
-        erros.push({ texto: "Email inválido" });
-    }
-
-    if (!req.body.senha || typeof req.body.senha === "undefined" || req.body.senha === null) {
-        erros.push({ texto: "Senha inválida" });
-    } else {
-        if (req.body.senha.length < 4) {
-            erros.push({ texto: "Senha muito curta" });
-        }
-        if (req.body.senha !== req.body.senha2) {
-            erros.push({ texto: "As senhas são diferentes, tente novamente!" });
-        }
-    }
+    if (!req.body.nome) erros.push("Nome inválido");
+    if (!req.body.email) erros.push("Email inválido");
+    if (!req.body.senha) erros.push("Senha inválida");
+    if (req.body.senha && req.body.senha.length < 4) erros.push("Senha muito curta");
+    if (req.body.senha !== req.body.senha2) erros.push("As senhas são diferentes");
 
     if (erros.length > 0) {
-        res.render("usuarios/registro", { erros });
-    } else {
-        Usuario.findOne({ email: req.body.email }).then((usuario) => {
-            if (usuario) {
-                req.flash("error_msg", "Já existe uma conta com este email.");
-                res.redirect("/usuarios/registro");
-            } else {
-                const novoUsuario = new Usuario({
-                    nome: req.body.nome,
-                    email: req.body.email,
-                    senha: req.body.senha
-                });
+        return res.status(400).json({ erros });
+    }
 
-                // Criptografar senha
-                bcrypt.genSalt(10, (erro, salt) => {
-                    bcrypt.hash(novoUsuario.senha, salt, (erro, hash) => {
-                        if (erro) {
-                            req.flash("error_msg", "Erro ao salvar usuário.");
-                            res.redirect("/usuarios/registro");
-                        } else {
-                            novoUsuario.senha = hash;
-                            novoUsuario.save().then(() => {
-                                req.flash("success_msg", "Usuário registrado com sucesso!");
-                                res.redirect("/");
-                            }).catch((err) => {
-                                req.flash("error_msg", "Houve um erro ao registrar o usuário, tente novamente");
-                                res.redirect("/usuario/registro");
-                            });
-                        }
-                    });
-                });
-            }
+    try {
+        const usuarioExistente = await Usuario.findOne({ email: req.body.email });
+        if (usuarioExistente) {
+            return res.status(400).json({ error: "Já existe uma conta com este email." });
+        }
+
+        const novoUsuario = new Usuario({
+            nome: req.body.nome,
+            email: req.body.email,
+            senha: req.body.senha
         });
+
+        const salt = await bcrypt.genSalt(10);
+        novoUsuario.senha = await bcrypt.hash(novoUsuario.senha, salt);
+        await novoUsuario.save();
+
+        res.json({ success: "Usuário registrado com sucesso!" });
+    } catch (err) {
+        res.status(500).json({ error: "Erro ao registrar usuário: " + err.message });
     }
 });
 
-router.get("/login", (req, res) => {
-    res.render("usuarios/login")
-})
-
+// rota login
 router.post("/login", (req, res, next) => {
-    passport.authenticate("local", {
-        successRedirect: "/",
-        failureRedirect: "/usuarios/login",
-        failureFlash: true
-    })(req, res, next)
-})
+    passport.authenticate("local", (err, user, info) => {
+        if (err) return res.status(500).json({ error: "Erro interno" });
+        if (!user) return res.status(400).json({ error: "Credenciais inválidas" });
 
+        req.logIn(user, (err) => {
+            if (err) return res.status(500).json({ error: "Erro ao autenticar" });
+            res.json({ success: "Login realizado com sucesso", user });
+        });
+    })(req, res, next);
+});
+
+// rota logout
 router.get("/logout", (req, res, next) => {
     req.logout(function (err) {
-        if (err) { return next(err); }
-        req.flash("success_msg", "Deslogado com sucesso!");
-        res.redirect("/");
+        if (err) return next(err);
+        res.json({ success: "Deslogado com sucesso!" });
     });
 });
 
@@ -99,48 +70,41 @@ router.get("/postagem/:id", async (req, res) => {
         const postagem = await Postagem.findById(req.params.id)
             .populate("categoria")
             .lean();
-        res.render("postagem/index", { postagem });
+        if (!postagem) return res.status(404).json({ error: "Postagem não encontrada" });
+        res.json(postagem);
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Erro no servidor");
+        res.status(500).json({ error: "Erro no servidor" });
     }
 });
 
 // rota principal de exames: lista todos os anos
 router.get("/exames", (req, res) => {
     const anos = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013, 2012];
-    res.render("exames/index", { anos });
+    res.json({ anos });
 });
 
 // rota para exames de um ano específico
 router.get("/exames/:ano", (req, res) => {
     const ano = req.params.ano;
-    res.render("exames/ano", { ano });
+    res.json({ ano });
 });
 
 // Matemática I
 router.get("/exames/:ano/matematica1", (req, res) => {
     const ano = req.params.ano;
-    res.render(`resolucao/${ano}/matematica1`, { ano, exame: "Matemática I UEM" });
+    res.json({ ano, exame: "Matemática I UEM" });
 });
 
 // Matemática II
 router.get("/exames/:ano/matematica2", (req, res) => {
     const ano = req.params.ano;
-    res.render(`resolucao/${ano}/matematica2`, { ano, exame: "Matemática II UEM" });
+    res.json({ ano, exame: "Matemática II UEM" });
 });
 
 // Matemática III
 router.get("/exames/:ano/matematica3", (req, res) => {
     const ano = req.params.ano;
-    res.render(`resolucao/${ano}/matematica3`, { ano, exame: "Matemática III UEM" });
+    res.json({ ano, exame: "Matemática III UEM" });
 });
-
-
-
-
-
-
-
 
 module.exports = router;

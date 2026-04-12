@@ -1,36 +1,79 @@
 const express = require("express");
-const { engine } = require("express-handlebars");
+const cors = require("cors");
 const path = require("path");
-const app = express();
-const admin = require("./routes/admin");
 const mongoose = require("mongoose");
 const session = require("express-session");
 const flash = require("connect-flash");
-const Handlebars = require("handlebars");
 const passport = require("passport");
-app.use(express.static("public"));
+require("dotenv").config();
 
+const app = express();
 
-require('dotenv').config();
+// Debug para verificar se a variável está carregada
 console.log("MONGO_URI:", process.env.MONGO_URI);
 
-// Body Parser
-app.use(express.urlencoded({ extended: true }));
+// Middleware
+app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-
-
+// Models
 const Postagem = require("./models/Postagem");
 const Categoria = require("./models/Categoria");
-const usuarios = require("./routes/usuario")
-app.use("/", usuarios);
+const Exame = require("./models/Exame");
 
-require("./config/auth")(passport);
-
-// Helper para handlebars
-Handlebars.registerHelper("ifEquals", function (arg1, arg2, options) {
-    return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
+// ✅ Rotas para resoluções de exames
+// Inserir nova resolução
+app.post("/api/resolucoes", async (req, res) => {
+    try {
+        const { disciplina, ano, versao, conteudo } = req.body;
+        if (!disciplina || !ano || !versao || !conteudo) {
+            return res.status(400).json({ error: "Campos obrigatórios em falta" });
+        }
+        const exame = new Exame({ disciplina, ano, versao, conteudo });
+        await exame.save();
+        res.json({ success: true, exame });
+    } catch (err) {
+        console.error("Erro ao salvar resolução:", err);
+        res.status(500).json({ error: "Erro ao salvar resolução" });
+    }
 });
+
+// Consultar resolução
+app.get("/api/resolucoes/:disciplina/:ano/:versao", async (req, res) => {
+    try {
+        const { disciplina, ano, versao } = req.params;
+        const exame = await Exame.findOne({ disciplina, ano, versao }).lean();
+        if (!exame) return res.status(404).json({ error: "Resolução não encontrada" });
+        res.json(exame);
+    } catch (err) {
+        console.error("Erro ao carregar resolução:", err);
+        res.status(500).json({ error: "Erro interno ao carregar resolução" });
+    }
+});
+
+app.use("/resolucoes", express.static(path.join(__dirname, "src/resolucoes")));
+
+
+// Rotas customizadas
+const usuarios = require("./routes/usuario");
+const admin = require("./routes/admin");
+const quiz = require("./routes/quiz");
+
+app.use("/usuarios", usuarios);
+app.use("/admin", admin);
+app.use("/quiz", quiz);
+
+// Rotas API simples (React consome estas)
+app.get("/api/quizzes", (req, res) => {
+    res.json([
+        { id: 1, titulo: "Quiz de Matemática" },
+        { id: 2, titulo: "Quiz de Física" }
+    ]);
+});
+
+// Autenticação
+require("./config/auth")(passport);
 
 // Sessão
 app.use(session({
@@ -43,7 +86,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
 
-// Middleware
+// Middleware para mensagens flash
 app.use((req, res, next) => {
     res.locals.success_msg = req.flash("success_msg");
     res.locals.error_msg = req.flash("error_msg");
@@ -52,74 +95,56 @@ app.use((req, res, next) => {
     next();
 });
 
-
-
-// Handlebars
-app.engine("handlebars", engine({ defaultLayout: "main" }));
-app.set("view engine", "handlebars");
-
 // Mongoose
 mongoose.Promise = global.Promise;
-mongoose.connect(process.env.MONGO_URI).then(() => {
-    console.log("Conectado ao MongoDB Atlas");
-}).catch((err) => {
-    console.log("Erro ao se conectar: " + err);
-});
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log("Conectado ao MongoDB Atlas"))
+    .catch((err) => console.log("Erro ao se conectar: " + err));
 
-// Public
+// Public (para servir assets estáticos, se necessário)
 app.use(express.static(path.join(__dirname, "public")));
 
-// Rotas
-app.get("/", (req, res) => {
-    Postagem.find().populate("categoria").sort({ data: "desc" }).lean().then((postagens) => {
-        res.render("index", { postagens });
-    }).catch((err) => {
-        req.flash("error_msg", "Houve um erro interno");
-        res.redirect("/404");
-    });
+// ✅ Rotas API (React consome estas)
+app.get("/api/postagens", async (req, res) => {
+    try {
+        const postagens = await Postagem.find()
+            .populate("categoria")
+            .sort({ data: "desc" })
+            .lean();
+        res.json(postagens);
+    } catch (err) {
+        res.status(500).json({ error: "Erro interno ao listar postagens" });
+    }
 });
 
-app.get("/categorias", (req, res) => {
-    Categoria.find().lean().then((categorias) => {
-        res.render("categorias/index", { categorias });
-    }).catch((err) => {
-        req.flash("error_msg", "Houve um erro ao listar as categorias");
-        res.redirect("/");
-    });
+app.get("/api/categorias", async (req, res) => {
+    try {
+        const categorias = await Categoria.find().lean();
+        res.json(categorias);
+    } catch (err) {
+        res.status(500).json({ error: "Erro interno ao listar categorias" });
+    }
 });
 
-app.get("/categorias/:slug", (req, res) => {
-    Categoria.findOne({ slug: req.params.slug }).lean().then((categoria) => {
-        if (categoria) {
-            Postagem.find({ categoria: categoria._id }).lean().then((postagens) => {
-                res.render("categorias/postagens", { postagens, categoria });
-            }).catch((err) => {
-                req.flash("error_msg", "Houve um erro ao listar posts.");
-                res.redirect("/");
-            });
-        } else {
-            req.flash("error_msg", "Esta categoria não existe");
-            res.redirect("/");
+app.get("/api/categorias/:slug", async (req, res) => {
+    try {
+        const categoria = await Categoria.findOne({ slug: req.params.slug }).lean();
+        if (!categoria) {
+            return res.status(404).json({ error: "Categoria não encontrada" });
         }
-    }).catch((err) => {
-        req.flash("error_msg", "Houve um erro interno ao carregar a página desta categoria");
-        res.redirect("/");
-    });
+        const postagens = await Postagem.find({ categoria: categoria._id }).lean();
+        res.json({ categoria, postagens });
+    } catch (err) {
+        res.status(500).json({ error: "Erro interno ao carregar categoria" });
+    }
 });
 
-app.get("/postagem/slug", (req, res) => {
-    // rota futura
+// Rota de erro
+app.get("/api/404", (req, res) => {
+    res.status(404).json({ error: "Erro 404!" });
 });
 
-app.get("/404", (req, res) => {
-    res.send("Erro 404!");
-});
-
-app.use("/admin", admin);
-app.use("/usuarios", usuarios);
-const quiz = require("./routes/quiz");
-app.use("/quiz", quiz);
-
+// Servidor
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log("SERVIDOR RODANDO na porta " + PORT);

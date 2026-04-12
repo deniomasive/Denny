@@ -1,0 +1,47 @@
+/* src/styles/ListaExames.css */
+
+.lista-container {
+    width: 100%;
+    min-height: 100vh;
+    padding: 40px;
+    background-color: #f5f5f5;
+    text-align: center;
+}
+
+.lista-title {
+    color: #e64a19;
+    font-size: 2rem;
+    margin-bottom: 30px;
+    font-weight: bold;
+}
+
+.anos-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.ano-link {
+    flex: 1 1 100px;
+    height: 80px;
+    background: linear-gradient(135deg, #e64a19, #ff7043);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #fff;
+    font-weight: bold;
+    font-size: 1rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+}
+
+.ano-link:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(135deg, #ff7043, #e64a19);
+}
