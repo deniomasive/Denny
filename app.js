@@ -60,10 +60,12 @@ mongoose.connect(process.env.MONGO_URI)
 app.use(express.static(path.join(__dirname, "public")));
 
 
-app.use(express.static(path.join(__dirname, "../frontend/build")));
+// correto (aponta para dist)
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
 app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
+    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
+
 
 // Servidor
 const PORT = process.env.PORT || 8080;
