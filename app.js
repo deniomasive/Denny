@@ -19,12 +19,20 @@ const Postagem = require("./models/Postagem");
 const Categoria = require("./models/Categoria");
 const Exame = require("./models/Exame");
 
-// Rotas API (exemplo)
-app.get("/api/quizzes", (req, res) => {
-    res.json([
-        { id: 1, titulo: "Quiz de Matemática" },
-        { id: 2, titulo: "Quiz de Física" }
-    ]);
+// Rotas API exemplo
+app.post("/api/resolucoes", async (req, res) => {
+    try {
+        const { disciplina, ano, versao, conteudo } = req.body;
+        if (!disciplina || !ano || !versao || !conteudo) {
+            return res.status(400).json({ error: "Campos obrigatórios em falta" });
+        }
+        const exame = new Exame({ disciplina, ano, versao, conteudo });
+        await exame.save();
+        res.json({ success: true, exame });
+    } catch (err) {
+        console.error("Erro ao salvar resolução:", err);
+        res.status(500).json({ error: "Erro ao salvar resolução" });
+    }
 });
 
 // Autenticação
@@ -59,13 +67,13 @@ mongoose.connect(process.env.MONGO_URI)
 // Servir assets públicos
 app.use(express.static(path.join(__dirname, "public")));
 
+// ✅ Servir o frontend Vite build
+app.use(express.static(path.join(__dirname, "frontend/dist")));
 
-// correto (aponta para dist)
-app.use(express.static(path.join(__dirname, "../frontend/dist")));
+// ✅ Rota catch-all para React Router
 app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+    res.sendFile(path.join(__dirname, "frontend/dist/index.html"));
 });
-
 
 // Servidor
 const PORT = process.env.PORT || 8080;
