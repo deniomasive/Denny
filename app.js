@@ -143,6 +143,10 @@ app.get("/api/categorias/:slug", async (req, res) => {
 app.get("/api/404", (req, res) => {
     res.status(404).json({ error: "Erro 404!" });
 });
+// Servir frontend build
+app.use(express.static(path.join(__dirname, "../Frontend/build")));
+
+
 
 // Servidor
 const PORT = process.env.PORT || 8080;
