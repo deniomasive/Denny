@@ -59,12 +59,10 @@ mongoose.connect(process.env.MONGO_URI)
 // Servir assets públicos
 app.use(express.static(path.join(__dirname, "public")));
 
-// ✅ Servir o frontend React build
-app.use(express.static(path.join(__dirname, "../Frontend/build")));
 
-// ✅ Rota catch-all para React Router
+app.use(express.static(path.join(__dirname, "../frontend/build")));
 app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, "../Frontend/build/index.html"));
+    res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
 });
 
 // Servidor
