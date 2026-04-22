@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const session = require("express-session");
 const flash = require("connect-flash");
 const passport = require("passport");
+const MongoStore = require("connect-mongo");
 require("dotenv").config();
 
 const app = express();
@@ -38,11 +39,15 @@ app.post("/api/resolucoes", async (req, res) => {
 // Autenticação
 require("./config/auth")(passport);
 
-// Sessão
+// ✅ Sessão com connect-mongo
 app.use(session({
     secret: "cursodenode",
-    resave: true,
-    saveUninitialized: true
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        ttl: 14 * 24 * 60 * 60 // tempo de vida da sessão em segundos (14 dias)
+    })
 }));
 
 app.use(passport.initialize());
