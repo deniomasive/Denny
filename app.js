@@ -40,15 +40,18 @@ app.post("/api/resolucoes", async (req, res) => {
 require("./config/auth")(passport);
 
 // ✅ Sessão com connect-mongo
+
 app.use(session({
     secret: "cursodenode",
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
         mongoUrl: process.env.MONGO_URI,
-        ttl: 14 * 24 * 60 * 60 // tempo de vida da sessão em segundos (14 dias)
+        ttl: 14 * 24 * 60 * 60
     })
 }));
+
+
 
 app.use(passport.initialize());
 app.use(passport.session());
