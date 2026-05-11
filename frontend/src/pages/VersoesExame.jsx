@@ -1,25 +1,17 @@
-// src/pages/VersoesExame.jsx
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import "../styles/ListaExames.css";
 
 function VersoesExame() {
     const { disciplina, ano } = useParams();
-    const anoNum = parseInt(ano, 10);
+    const [versoes, setVersoes] = useState([]);
 
-    if (anoNum < 2020) {
-        return (
-            <div className="lista-container">
-                <h2 className="lista-title">
-                    {disciplina.charAt(0).toUpperCase() + disciplina.slice(1)} - {ano}
-                </h2>
-                <p style={{ marginTop: "20px", fontSize: "1.2rem", color: "#555" }}>
-                    Exame único disponível para este ano.
-                </p>
-            </div>
-        );
-    }
-
-    const versoes = ["1", "2", "3"];
+    useEffect(() => {
+        fetch(`/api/exames/${disciplina}/${ano}`)
+            .then(res => res.json())
+            .then(data => setVersoes(data.versoes || []))
+            .catch(err => console.error("Erro ao carregar versões:", err));
+    }, [disciplina, ano]);
 
     return (
         <div className="lista-container">
@@ -27,15 +19,21 @@ function VersoesExame() {
                 {disciplina.charAt(0).toUpperCase() + disciplina.slice(1)} - {ano}
             </h2>
             <div className="anos-grid">
-                {versoes.map((v) => (
-                    <a
-                        key={v}
-                        href={`/exames/${disciplina}/${ano}/${v}`}
-                        className="ano-link"
-                    >
-                        {disciplina} {v}
-                    </a>
-                ))}
+                {versoes.length > 0 ? (
+                    versoes.map(v => (
+                        <Link
+                            key={v}
+                            to={`/exames/${disciplina}/${ano}/${v}`}
+                            className="ano-link"
+                        >
+                            Versão {v}
+                        </Link>
+                    ))
+                ) : (
+                    <p> Nenhuma versão encontrada para este ano. </p>
+                )}
+
+
             </div>
         </div>
     );

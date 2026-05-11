@@ -36,6 +36,59 @@ app.post("/api/resolucoes", async (req, res) => {
         res.status(500).json({ error: "Erro ao salvar resolução" });
     }
 });
+// Rota de versões fixa
+app.get("/api/exames/:disciplina/:ano", async (req, res) => {
+    const { disciplina, ano } = req.params;
+    try {
+        // Se quiseres validar se existe pelo menos um exame no Mongo:
+        const exames = await Exame.find({
+            disciplina: normalizar(disciplina),
+            ano: parseInt(ano)
+        }).lean();
+
+        if (!exames || exames.length === 0) {
+            // Mesmo sem dados, devolve sempre 1,2,3
+            return res.json({ disciplina, ano, versoes: [1, 2, 3] });
+        }
+
+        // Se houver dados, devolve as versões únicas
+        const versoes = [...new Set(exames.map(e => e.versao))];
+        // Garante que pelo menos 1,2,3 estão presentes
+        const todas = [1, 2, 3].filter(v => !versoes.includes(v)).concat(versoes);
+        res.json({ disciplina, ano, versoes: todas.sort() });
+    } catch (err) {
+        console.error("Erro ao buscar versões:", err);
+        res.status(500).json({ error: "Erro ao buscar versões" });
+    }
+});
+
+
+
+// ✅ Buscar exame específico (com validação de versao)
+app.get("/api/exames/:disciplina/:ano/:versao", async (req, res) => {
+    const { disciplina, ano, versao } = req.params;
+
+    if (!versao || isNaN(parseInt(versao))) {
+        return res.status(400).json({ error: "Versão inválida" });
+    }
+
+    try {
+        const exame = await Exame.findOne({
+            disciplina: normalizar(disciplina),
+            ano: parseInt(ano),
+            versao: parseInt(versao)
+        }).lean();
+
+        if (!exame) {
+            return res.status(404).json({ error: "Exame não encontrado" });
+        }
+
+        res.json(exame);
+    } catch (err) {
+        console.error("Erro ao buscar exame:", err);
+        res.status(500).json({ error: "Erro ao buscar exame" });
+    }
+});
 
 app.get("/api/resolucoes", async (req, res) => {
     try {
@@ -73,6 +126,7 @@ app.get("/api/resolucoes", async (req, res) => {
 const normalizar = str =>
     str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
+// Rota antiga de exame com resoluções em ficheiros
 app.get("/exames/:disciplina/:ano/:versao", async (req, res) => {
     try {
         const { disciplina, ano, versao } = req.params;
@@ -113,7 +167,6 @@ app.get("/exames/:disciplina/:ano/:versao", async (req, res) => {
         res.status(500).json({ error: "Erro ao buscar exame" });
     }
 });
-
 
 // Autenticação
 require("./config/auth")(passport);
@@ -162,8 +215,6 @@ app.use(express.static(path.join(__dirname, "frontend/dist")));
 app.use((req, res) => {
     res.sendFile(path.join(__dirname, "frontend/dist", "index.html"));
 });
-
-
 
 // Servidor
 const PORT = process.env.PORT || 8080;
