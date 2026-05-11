@@ -1,15 +1,18 @@
-// src/pages/ResolucaoExame.jsx
-import { useParams } from "react-router-dom";
+// src/pages/Exame.jsx
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { MathJax, MathJaxContext } from "better-react-mathjax";
-import "./ResolucaoExame.css";
 
 const config = {
-    loader: { load: ["input/tex", "output/chtml", "[tex]/ams", "[tex]/color", "[tex]/textmacros"] },
-    tex: { packages: { "[+]": ["ams", "color", "textmacros"] } }
+    loader: {
+        load: ["input/tex", "output/chtml", "[tex]/ams", "[tex]/color", "[tex]/textmacros"]
+    },
+    tex: {
+        packages: { "[+]": ["ams", "color", "textmacros"] }
+    }
 };
 
-function ResolucaoExame() {
+function Exame() {
     const { disciplina, ano, versao } = useParams();
     const [exame, setExame] = useState(null);
 
@@ -17,24 +20,26 @@ function ResolucaoExame() {
         fetch(`http://localhost:8080/exames/${disciplina}/${ano}/${versao}`)
             .then(res => res.json())
             .then(data => setExame(data))
-            .catch(err => console.error("Erro ao carregar exame:", err));
+            .catch(err => console.error("Erro ao buscar exame:", err));
     }, [disciplina, ano, versao]);
 
     if (!exame) return <p>Carregando...</p>;
 
     return (
         <MathJaxContext config={config}>
-            <div>
+            <div className="exame-container">
                 <h2>
-                    Exame {exame.ano} — {exame.disciplina} (Versão {exame.versao})
+                    {exame.disciplina.toUpperCase()} — {exame.ano} (Versão {exame.versao})
                 </h2>
+
                 {exame.conteudo.map(ex => (
-                    <div key={ex.numero} className="exercicio">
+                    <div key={ex._id} className="exercicio">
                         <h3>Exercício {ex.numero}</h3>
-                        <p>{ex.enunciado}</p>
+                        <p className="enunciado">{ex.enunciado}</p>
+
                         {ex.resolucao && (
                             <div className="solucao">
-                                <MathJax dynamic>{`${ex.resolucao}`}</MathJax>
+                                <MathJax dynamic>{String(ex.resolucao)}</MathJax>
                             </div>
                         )}
                     </div>
@@ -44,4 +49,4 @@ function ResolucaoExame() {
     );
 }
 
-export default ResolucaoExame;
+export default Exame;

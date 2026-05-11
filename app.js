@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 const mongoose = require("mongoose");
 const session = require("express-session");
 const flash = require("connect-flash");
@@ -20,7 +21,7 @@ const Postagem = require("./models/Postagem");
 const Categoria = require("./models/Categoria");
 const Exame = require("./models/Exame");
 
-// Rotas API exemplo
+// --- Rotas API ---
 app.post("/api/resolucoes", async (req, res) => {
     try {
         const { disciplina, ano, versao, conteudo } = req.body;
@@ -36,11 +37,84 @@ app.post("/api/resolucoes", async (req, res) => {
     }
 });
 
+app.get("/api/resolucoes", async (req, res) => {
+    try {
+        const exames = await Exame.find().lean();
+        const examesComResolucoes = exames.map(exame => {
+            const conteudoComTexto = exame.conteudo.map(ex => {
+                let resolucao = null;
+                if (ex.resolucao_file) {
+                    const filePath = path.join(
+                        __dirname,
+                        "src",
+                        "resolucoes",
+                        exame.disciplina.toLowerCase(),
+                        String(exame.ano),
+                        String(exame.versao),
+                        ex.resolucao_file
+                    );
+                    try {
+                        resolucao = fs.readFileSync(filePath, "utf8");
+                    } catch (err) {
+                        console.error("Erro ao ler ficheiro:", filePath, err.message);
+                    }
+                }
+                return { ...ex, resolucao };
+            });
+            return { ...exame, conteudo: conteudoComTexto };
+        });
+        res.json(examesComResolucoes);
+    } catch (err) {
+        console.error("Erro ao buscar resoluções:", err);
+        res.status(500).json({ error: "Erro ao buscar resoluções" });
+    }
+});
+
+app.get("/exames/:disciplina/:ano/:versao", async (req, res) => {
+    try {
+        const { disciplina, ano, versao } = req.params;
+        const exame = await Exame.findOne({
+            disciplina: disciplina.toLowerCase(),
+            ano: parseInt(ano),
+            versao: parseInt(versao)
+        }).lean();
+
+        if (!exame) {
+            return res.status(404).json({ error: "Exame não encontrado" });
+        }
+
+        const conteudoComTexto = exame.conteudo.map(ex => {
+            let resolucao = null;
+            if (ex.resolucao_file) {
+                const filePath = path.join(
+                    __dirname,
+                    "src",
+                    "resolucoes",
+                    disciplina.toLowerCase(),
+                    String(ano),
+                    String(versao),
+                    ex.resolucao_file
+                );
+                try {
+                    resolucao = fs.readFileSync(filePath, "utf8");
+                } catch (err) {
+                    console.error("Erro ao ler ficheiro:", filePath, err.message);
+                }
+            }
+            return { ...ex, resolucao };
+        });
+
+        res.json({ ...exame, conteudo: conteudoComTexto });
+    } catch (err) {
+        console.error("Erro ao buscar exame:", err);
+        res.status(500).json({ error: "Erro ao buscar exame" });
+    }
+});
+
 // Autenticação
 require("./config/auth")(passport);
 
-// ✅ Sessão com connect-mongo
-
+// Sessão com connect-mongo
 app.use(session({
     secret: "cursodenode",
     resave: false,
@@ -50,8 +124,6 @@ app.use(session({
         ttl: 14 * 24 * 60 * 60
     })
 }));
-
-
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -69,19 +141,25 @@ app.use((req, res, next) => {
 // MongoDB
 mongoose.Promise = global.Promise;
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("Conectado ao MongoDB Atlas"))
+    .then(() => console.log("Conectado ao MongoDB"))
     .catch((err) => console.log("Erro ao se conectar: " + err));
 
-// Servir assets públicos
-app.use(express.static(path.join(__dirname, "public")));
+mongoose.connection.on("error", err => {
+    console.error("Erro de conexão Mongo:", err);
+});
+mongoose.connection.once("open", () => {
+    console.log("Ligação ao Mongo aberta com sucesso");
+});
 
-// ✅ Servir o frontend Vite build
+// Servir frontend React buildado
 app.use(express.static(path.join(__dirname, "frontend/dist")));
 
-// ✅ Rota catch-all para React Router
-app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, "frontend/dist/index.html"));
+// ✅ Fallback para React Router (SPA)
+app.use((req, res) => {
+    res.sendFile(path.join(__dirname, "frontend/dist", "index.html"));
 });
+
+
 
 // Servidor
 const PORT = process.env.PORT || 8080;
