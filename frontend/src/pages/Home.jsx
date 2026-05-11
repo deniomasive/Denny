@@ -87,7 +87,7 @@ function Home() {
                 </a>
 
                 {/* Bloco Exames Resolvidos */}
-                <a href="/#/exames" style={{
+                <a href="/exames" style={{
                     flex: "1 1 150px",
                     height: "130px",
                     backgroundColor: "#d84315",   // tom mais escuro
