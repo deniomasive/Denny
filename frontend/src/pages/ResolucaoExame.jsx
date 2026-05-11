@@ -1,4 +1,3 @@
-// src/pages/ResolucaoExame.jsx
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { MathJax, MathJaxContext } from "better-react-mathjax";
@@ -14,7 +13,7 @@ function ResolucaoExame() {
     const [exame, setExame] = useState(null);
 
     useEffect(() => {
-        fetch(`http://localhost:8080/exames/${disciplina}/${ano}/${versao}`)
+        fetch(`/exames/${disciplina}/${ano}/${versao}`)
             .then(res => res.json())
             .then(data => setExame(data))
             .catch(err => console.error("Erro ao carregar exame:", err));
@@ -34,7 +33,7 @@ function ResolucaoExame() {
                         <p>{ex.enunciado}</p>
                         {ex.resolucao && (
                             <div className="solucao">
-                                <MathJax dynamic>{`${ex.resolucao}`}</MathJax>
+                                <MathJax dynamic>{`$$${ex.resolucao}$$`}</MathJax>
                             </div>
                         )}
                     </div>

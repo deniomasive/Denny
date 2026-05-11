@@ -1,4 +1,5 @@
 // src/pages/Exames.jsx
+import { Link } from "react-router-dom";
 import "../styles/Exames.css";
 
 function Exames() {
@@ -12,13 +13,13 @@ function Exames() {
             <h2 className="exames-title">Exames por Disciplina</h2>
             <div className="exames-grid">
                 {disciplinas.map((disciplina) => (
-                    <a
+                    <Link
                         key={disciplina}
-                        href={`/exames/${disciplina.toLowerCase()}`}
+                        to={`/exames/${disciplina.toLowerCase()}`}
                         className="exame-link"
                     >
                         {disciplina}
-                    </a>
+                    </Link>
                 ))}
             </div>
         </div>

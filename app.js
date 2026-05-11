@@ -70,11 +70,14 @@ app.get("/api/resolucoes", async (req, res) => {
     }
 });
 
+const normalizar = str =>
+    str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
 app.get("/exames/:disciplina/:ano/:versao", async (req, res) => {
     try {
         const { disciplina, ano, versao } = req.params;
         const exame = await Exame.findOne({
-            disciplina: disciplina.toLowerCase(),
+            disciplina: normalizar(disciplina),
             ano: parseInt(ano),
             versao: parseInt(versao)
         }).lean();
@@ -90,7 +93,7 @@ app.get("/exames/:disciplina/:ano/:versao", async (req, res) => {
                     __dirname,
                     "src",
                     "resolucoes",
-                    disciplina.toLowerCase(),
+                    normalizar(disciplina),
                     String(ano),
                     String(versao),
                     ex.resolucao_file
@@ -110,6 +113,7 @@ app.get("/exames/:disciplina/:ano/:versao", async (req, res) => {
         res.status(500).json({ error: "Erro ao buscar exame" });
     }
 });
+
 
 // Autenticação
 require("./config/auth")(passport);

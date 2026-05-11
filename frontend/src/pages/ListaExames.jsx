@@ -15,7 +15,7 @@ function ListaExames() {
                 {anos.map((ano) => (
                     <Link
                         key={ano}
-                        to={`/exames/${disciplina}/${ano}`}
+                        to={`/exames/${disciplina}/${ano}/1`}   // ✅ inclui versão 1
                         className="ano-link"
                     >
                         {ano}
